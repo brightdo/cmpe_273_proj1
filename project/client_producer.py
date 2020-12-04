@@ -37,7 +37,7 @@ def generate_data_round_robin(servers):
         server = next(pool)
         server.send_json(data)
         # print(f"Sending data:{data}" , " to ", servers)
-        server.recv_json()
+        received = server.recv_json()
         time.sleep(1)
     #print("Done")
 
@@ -152,13 +152,14 @@ def addNode(num):
     
     # get all data assigned to the bin that needs rebalancing
     allData = getServer.recv_json()
-    print(allData)
+    # print(allData)
     for key,value in allData["Collection"].items():
         hash_key = myhash(key)
         data = {'op':"PUT",'key': key, 'value': value }
         if( hash_key <findBin):
             # rebalanceNode = producers.get("127.0.0.1:" + str(8000+num))
             producer_conn.send_json(data)
+            producer_conn.recv_json()
             #print(producer_conn.recv_json())
             # send json to remove data to rebalancing node(getServer)
             data = {'op':"REMOVE",'key': key}
@@ -166,7 +167,9 @@ def addNode(num):
             receiveRemoved = (getServer.recv_json())
     data = {'op':"GET_ALL"}
     producer_conn.send_json(data)
+    print("new added node9")
     print(producer_conn.recv_json())
+    print("rebalanced data from ", rebalanceAddress)
     getServer.send_json(data)
     print(getServer.recv_json())
 
@@ -174,7 +177,7 @@ def addNode(num):
 
 
 def removeNode(num):
-    print("removing node number ", num)
+    print("removing node")
     global producers
     if (len(producers) ==0):
         producers = create_clients(servers)
@@ -206,7 +209,9 @@ def removeNode(num):
         getServer.recv_json()
         data = {'op':"GET_ALL"}
         getServer.send_json(data)
+        print("rebalanced")
         newDataList = getServer.recv_json()
+    print(newDataList)
     a.service.deregister("node" + str(num))
 
 
@@ -262,12 +267,11 @@ if __name__ == "__main__":
     # generate_data_hrw_hashing(servers)
     # getStat()
     # removeAll()
-    # # print()
+    # print()
     generate_data_consistent_hashing(servers)
-    # getStat()    
-    addNode(9)
-    #getStat()    
-    #removeNode(9)
+    getStat()    
+    addNode(9) 
+    removeNode(5)
     # getStat()
 
 

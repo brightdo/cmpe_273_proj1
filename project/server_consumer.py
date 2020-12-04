@@ -35,7 +35,7 @@ def server(port):
             data = {"Collection": mine}
             consumer.send_json(data)
         elif(raw['op'] == "REMOVE"):
-            print(raw['key'])
+            # print(raw['key'])
             del mine[raw['key']]
             data = {'status': 'success', 'count':mine} 
             consumer.send_json(data)
