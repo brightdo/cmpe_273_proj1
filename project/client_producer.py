@@ -105,7 +105,7 @@ def generate_data_hrw_hashing(servers):
     #print("Done")
     
 def addNode(num):
-    print("adding node number " , num)
+    print("adding node")
     global producers
     if (len(producers) ==0):
         producers = create_clients(servers)
@@ -121,9 +121,9 @@ def addNode(num):
     producer_conn = context.socket(zmq.REQ)
     server_port = 8000+num
     producer_conn.bind(f'tcp://127.0.0.1:{server_port}')
-    producers["127.0.0.1:" + str(8000+num)] = producer_conn
+    producers["tcp://127.0.0.1:" + str(8000+num)] = producer_conn
     serversForNode=[]
-    serversForNode.append("127.0.0.1:" + str(8000+num))
+    serversForNode.append("tcp://127.0.0.1:" + str(8000+num))
     #find bin for the new node
     findBin = myhash((f'tcp://127.0.0.1:{server_port}'))
 
@@ -141,17 +141,30 @@ def addNode(num):
         if findHashNode > findBin and findHashNode< rebalance:
             rebalanceAddress = (f'tcp://127.0.0.1:{server_port}')
             rebalance = findHashNode
-    #print("rebalance = " ,rebalanceAddress)
-    #print(producers.get(rebalanceAddress))
+    print("rebalance = " ,rebalanceAddress)
+    print(producers.get(rebalanceAddress))
+    
+
     getServer = producers.get(rebalanceAddress)
     #print("get server = ", getServer)
     #print(" addressPort = ", addressPort)
     data = {'op':"GET_ALL"}
     #print("getServer = ", getServer)
+    for key in producers.keys():
+        print(key)
+    print("rebalance aaddeess = " + str(rebalanceAddress))
     getServer.send_json(data)
-    
+
     # get all data assigned to the bin that needs rebalancing
     allData = getServer.recv_json()
+    print(producers)
+
+    # for key in producers.keys():
+    #     print(key)
+    # print()
+    # print('tcp://127.0.0.1:800' + str(num))
+    # newNode = producers.get('tcp://127.0.0.1:800' + str(num))
+    # print(newNode)
     # print(allData)
     for key,value in allData["Collection"].items():
         hash_key = myhash(key)
@@ -167,7 +180,7 @@ def addNode(num):
             receiveRemoved = (getServer.recv_json())
     data = {'op':"GET_ALL"}
     producer_conn.send_json(data)
-    print("new added node9")
+    print("new added ", "127.0.0.1:" + str(8000+num))
     print(producer_conn.recv_json())
     print("rebalanced data from ", rebalanceAddress)
     getServer.send_json(data)
@@ -202,15 +215,15 @@ def removeNode(num):
     #print("rebalanced to ", rebalanceAddress)
 
     getServer = producers.get(rebalanceAddress)
-
+    print("allData = " , allData)
     for key,value in allData["Collection"].items():
         data = {'op':"PUT",'key': key, 'value': value }
         getServer.send_json(data)
         getServer.recv_json()
         data = {'op':"GET_ALL"}
         getServer.send_json(data)
-        print("rebalanced")
         newDataList = getServer.recv_json()
+    print("rebalanced ",rebalanceAddress)
     print(newDataList)
     a.service.deregister("node" + str(num))
 
@@ -247,12 +260,45 @@ def removeAll():
 
     
 if __name__ == "__main__":
+
+
+
     producers ={}
     bin = []
     servers = []
     c = consul.Consul()
     a = c.agent
+
+
+    a.service.register(
+    "nod10",
+    # id = "127.0.0.1:8001",
+    address = "127.0.0.1",
+    port = 8010
+    )
+    a.service.register(
+    "node2",
+    # id = "127.0.0.1:8001",
+    address = "127.0.0.1",
+    port = 8002
+    )
+    a.service.register(
+    "node3",
+    # id = "127.0.0.1:8001",
+    address = "127.0.0.1",
+    port = 8003
+    )
+    a.service.register(
+    "node5",
+    # id = "127.0.0.1:8001",
+    address = "127.0.0.1",
+    port = 8005
+    )
+
+
+
     num_server = len(a.services())
+
 
     for key in a.services().keys():
         server_port = str(a.services()[key]['Port'])
@@ -260,19 +306,20 @@ if __name__ == "__main__":
         bin.append(myhash('tcp://127.0.0.1:'+server_port))
 
     #for demo
-    # generate_data_round_robin(servers)
-    # getStat()
-    # removeAll()
-    # print()
-    # generate_data_hrw_hashing(servers)
-    # getStat()
-    # removeAll()
-    # print()
+    generate_data_round_robin(servers)
+    getStat()
+    removeAll()
+    print()
+    generate_data_hrw_hashing(servers)
+    getStat()
+    removeAll()
+    print()
     generate_data_consistent_hashing(servers)
-    getStat()    
-    addNode(9) 
-    removeNode(5)
-    # getStat()
+    getStat()
+    print()    
+    addNode(9)
+    removeNode(5) 
+    # removeNode(8)
 
 
 
